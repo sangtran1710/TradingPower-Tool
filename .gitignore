@@ -1,0 +1,6 @@
+# Adobe After Effects temporary files
+*.aepx.bak
+*.aep.bak
+(Log).txt
+.DS_Store
+Thumbs.db
