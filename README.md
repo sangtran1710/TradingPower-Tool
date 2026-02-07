@@ -1,7 +1,11 @@
 # TradingPower Tool v9.2
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**TradingPower Tool** is a powerful ScriptUI Panel for Adobe After Effects, specifically designed to automate the creation of high-quality trading and financial education videos. It standardizes brand identity (Bebas Neue fonts, Gold color palette) and accelerates local editing workflows.
+![TradingPower Tool UI](docs/ui_screenshot.png)
 
+**TradingPower Tool** is a ScriptUI Panel for Adobe After Effects that automates the creation of trading and financial education videos. It standardizes brand identity (Bebas Neue fonts, Gold #c18d21 palette) and eliminates repetitive editing tasks.
+
+<!-- Add a demo GIF here: ![Demo](docs/demo.gif) -->
 ## Key Features
 
 - **Typography & Titles**: Generate standardized Lesson titles, Section headers, and quick text reveal animations.
