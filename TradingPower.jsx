@@ -12,7 +12,6 @@
     var SCRIPT_FOLDER_PATH = SCRIPT_FILE.exists ? SCRIPT_FILE.parent.absoluteURI : "";
     var PRESETS_FOLDER_NAME = "presets";
 
-    /** Helper to get preset file, trying relative path first, then fallback to user's OneDrive for backward compatibility */
     /** Helper to get preset file, trying relative path first, then fallback to developer's OneDrive for backward compatibility */
     function getPresetFile(filename) {
         var relativeFile = new File(SCRIPT_FOLDER_PATH + "/" + PRESETS_FOLDER_NAME + "/" + filename);
@@ -3109,134 +3108,134 @@
             myScriptPal.show();
         }
     }
-}
 
-/** Helper: Easy Ease Keyframes (Multi-dimensional safe) */
-function setEasyEase(prop, time) {
-    if (!prop || prop.numKeys === 0) return;
-    try {
-        var keyIndex = prop.nearestKeyIndex(time);
-        var easeIn = new KeyframeEase(0, 33);
-        var easeOut = new KeyframeEase(0, 33);
+    /** Helper: Easy Ease Keyframes (Multi-dimensional safe) */
+    function setEasyEase(prop, time) {
+        if (!prop || prop.numKeys === 0) return;
+        try {
+            var keyIndex = prop.nearestKeyIndex(time);
+            var easeIn = new KeyframeEase(0, 33);
+            var easeOut = new KeyframeEase(0, 33);
 
-        var dims = 1;
-        if (prop.propertyValueType === PropertyValueType.TwoD || prop.propertyValueType === PropertyValueType.TwoD_SPATIAL) dims = 2;
-        if (prop.propertyValueType === PropertyValueType.ThreeD || prop.propertyValueType === PropertyValueType.ThreeD_SPATIAL) dims = 3;
+            var dims = 1;
+            if (prop.propertyValueType === PropertyValueType.TwoD || prop.propertyValueType === PropertyValueType.TwoD_SPATIAL) dims = 2;
+            if (prop.propertyValueType === PropertyValueType.ThreeD || prop.propertyValueType === PropertyValueType.ThreeD_SPATIAL) dims = 3;
 
-        // Final fallback: Scale is almost always 3D in scripting context
-        if (prop.matchName === "ADBE Scale") dims = 3;
+            // Final fallback: Scale is almost always 3D in scripting context
+            if (prop.matchName === "ADBE Scale") dims = 3;
 
-        var easeArrayIn = [];
-        var easeArrayOut = [];
-        for (var i = 0; i < dims; i++) {
-            easeArrayIn.push(easeIn);
-            easeArrayOut.push(easeOut);
-        }
-        prop.setTemporalEaseAtKey(keyIndex, easeArrayIn, easeArrayOut);
-    } catch (e) { }
-}
-
-function sortLayersByInPoint() {
-    var comp = app.project.activeItem;
-    if (!comp || !(comp instanceof CompItem)) {
-        alert("Please open a valid Composition.");
-        return;
+            var easeArrayIn = [];
+            var easeArrayOut = [];
+            for (var i = 0; i < dims; i++) {
+                easeArrayIn.push(easeIn);
+                easeArrayOut.push(easeOut);
+            }
+            prop.setTemporalEaseAtKey(keyIndex, easeArrayIn, easeArrayOut);
+        } catch (e) { }
     }
 
-    app.beginUndoGroup("Sort Layers Staircase");
-    try {
-        var targets = [];
-        var sel = comp.selectedLayers;
-        var useSelection = (sel.length > 0);
+    function sortLayersByInPoint() {
+        var comp = app.project.activeItem;
+        if (!comp || !(comp instanceof CompItem)) {
+            alert("Please open a valid Composition.");
+            return;
+        }
 
-        if (useSelection) {
-            for (var i = 0; i < sel.length; i++) {
-                targets.push(sel[i]);
-            }
-        } else {
-            for (var i = 1; i <= comp.numLayers; i++) {
-                var layer = comp.layer(i);
-                if (!layer.locked) {
-                    targets.push(layer);
+        app.beginUndoGroup("Sort Layers Staircase");
+        try {
+            var targets = [];
+            var sel = comp.selectedLayers;
+            var useSelection = (sel.length > 0);
+
+            if (useSelection) {
+                for (var i = 0; i < sel.length; i++) {
+                    targets.push(sel[i]);
+                }
+            } else {
+                for (var i = 1; i <= comp.numLayers; i++) {
+                    var layer = comp.layer(i);
+                    if (!layer.locked) {
+                        targets.push(layer);
+                    }
                 }
             }
-        }
 
-        // Data wrapper for stable sort
-        var sortData = [];
-        for (var i = 0; i < targets.length; i++) {
-            sortData.push({
-                layer: targets[i],
-                inPoint: targets[i].inPoint,
-                originalIndex: targets[i].index
+            // Data wrapper for stable sort
+            var sortData = [];
+            for (var i = 0; i < targets.length; i++) {
+                sortData.push({
+                    layer: targets[i],
+                    inPoint: targets[i].inPoint,
+                    originalIndex: targets[i].index
+                });
+            }
+
+            // Sort: Descending InPoint (Latest First). Stable on Index.
+            sortData.sort(function (a, b) {
+                var diff = b.inPoint - a.inPoint;
+                if (Math.abs(diff) > 0.0001) return diff;
+                return a.originalIndex - b.originalIndex;
             });
+
+            // Apply Move (Reverse Loop matches moveToBeginning stack logic)
+            for (var i = sortData.length - 1; i >= 0; i--) {
+                sortData[i].layer.moveToBeginning();
+            }
+
+        } catch (err) {
+            alert("Sort Error: " + err.toString());
+        } finally {
+            app.endUndoGroup();
         }
-
-        // Sort: Descending InPoint (Latest First). Stable on Index.
-        sortData.sort(function (a, b) {
-            var diff = b.inPoint - a.inPoint;
-            if (Math.abs(diff) > 0.0001) return diff;
-            return a.originalIndex - b.originalIndex;
-        });
-
-        // Apply Move (Reverse Loop matches moveToBeginning stack logic)
-        for (var i = sortData.length - 1; i >= 0; i--) {
-            sortData[i].layer.moveToBeginning();
-        }
-
-    } catch (err) {
-        alert("Sort Error: " + err.toString());
-    } finally {
-        app.endUndoGroup();
     }
-}
 
-/** Add Circle FX with Trim Paths Reveal (Corrected Layer Ordering) */
-function addCircleFX() {
-    var comp = getActiveComp();
-    if (!comp) return;
+    /** Add Circle FX with Trim Paths Reveal (Corrected Layer Ordering) */
+    function addCircleFX() {
+        var comp = getActiveComp();
+        if (!comp) return;
 
-    app.beginUndoGroup("Add Circle FX");
-    try {
-        var insertRef = getInsertBeforeLayer(comp);
-        var playhead = comp.time;
-        var shapeLayer = comp.layers.addShape();
-        shapeLayer.name = "CIRCLE FX (TRIM)";
-        shapeLayer.label = 9; // Blue
-        shapeLayer.startTime = playhead;
-        shapeLayer.property("Position").setValue([comp.width / 2, comp.height / 2]);
-
-        var contents = shapeLayer.property("Contents");
-        var group = contents.addProperty("ADBE Vector Group");
-        var ellipse = group.property("Contents").addProperty("ADBE Vector Shape - Ellipse");
-        ellipse.property("Size").setValue([300, 300]);
-
-        var stroke = group.property("Contents").addProperty("ADBE Vector Graphic - Stroke");
-        stroke.property("Color").setValue(BRAND.colors.gold);
-        stroke.property("Stroke Width").setValue(8);
-
-        // Trim Paths
-        var trim = group.property("Contents").addProperty("ADBE Vector Filter - Trim");
-        trim.property("End").setValueAtTime(playhead, 0);
-        trim.property("End").setValueAtTime(playhead + 0.6, 100);
-
-        setEasyEase(trim.property("End"), playhead);
-        setEasyEase(trim.property("End"), playhead + 0.6);
-
-        // Glow
+        app.beginUndoGroup("Add Circle FX");
         try {
-            var glow = shapeLayer.Effects.addProperty("ADBE Glo2");
-            glow.property("Glow Radius").setValue(30);
-            glow.property("Glow Intensity").setValue(0.6);
-            glow.property("Glow Threshold").setValue(30);
-        } catch (e) { }
+            var insertRef = getInsertBeforeLayer(comp);
+            var playhead = comp.time;
+            var shapeLayer = comp.layers.addShape();
+            shapeLayer.name = "CIRCLE FX (TRIM)";
+            shapeLayer.label = 9; // Blue
+            shapeLayer.startTime = playhead;
+            shapeLayer.property("Position").setValue([comp.width / 2, comp.height / 2]);
 
-        moveNewLayerToInsertPosition(shapeLayer, insertRef);
-        restoreSelectionAfterInsert(comp, insertRef);
+            var contents = shapeLayer.property("Contents");
+            var group = contents.addProperty("ADBE Vector Group");
+            var ellipse = group.property("Contents").addProperty("ADBE Vector Shape - Ellipse");
+            ellipse.property("Size").setValue([300, 300]);
 
-    } catch (err) {
-        alert("Circle FX Error: " + err.toString());
-    } finally {
-        app.endUndoGroup();
+            var stroke = group.property("Contents").addProperty("ADBE Vector Graphic - Stroke");
+            stroke.property("Color").setValue(BRAND.colors.gold);
+            stroke.property("Stroke Width").setValue(8);
+
+            // Trim Paths
+            var trim = group.property("Contents").addProperty("ADBE Vector Filter - Trim");
+            trim.property("End").setValueAtTime(playhead, 0);
+            trim.property("End").setValueAtTime(playhead + 0.6, 100);
+
+            setEasyEase(trim.property("End"), playhead);
+            setEasyEase(trim.property("End"), playhead + 0.6);
+
+            // Glow
+            try {
+                var glow = shapeLayer.Effects.addProperty("ADBE Glo2");
+                glow.property("Glow Radius").setValue(30);
+                glow.property("Glow Intensity").setValue(0.6);
+                glow.property("Glow Threshold").setValue(30);
+            } catch (e) { }
+
+            moveNewLayerToInsertPosition(shapeLayer, insertRef);
+            restoreSelectionAfterInsert(comp, insertRef);
+
+        } catch (err) {
+            alert("Circle FX Error: " + err.toString());
+        } finally {
+            app.endUndoGroup();
+        }
     }
 }
